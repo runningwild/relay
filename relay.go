@@ -1,9 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/smtp"
 )
@@ -20,15 +21,10 @@ type Server struct {
 }
 
 func (s *Server) ServeHTTP(response http.ResponseWriter, req *http.Request) {
-	data, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-	}
-	if len(data) == 0 {
-		fmt.Printf("No data.\n")
-		return
-	}
-	err = smtp.SendMail(*dstSmtpAddrAndPort, s.auth, *sender, []string{*receiver}, data)
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, "To: %s\r\nSubject: BugReport\r\n\r\n", *receiver)
+	_, err := io.Copy(&buf, req.Body)
+	err = smtp.SendMail(*dstSmtpAddrAndPort, s.auth, *sender, []string{*receiver}, buf.Bytes())
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	}
