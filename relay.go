@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/smtp"
 )
@@ -19,8 +20,15 @@ type Server struct {
 }
 
 func (s *Server) ServeHTTP(response http.ResponseWriter, req *http.Request) {
-	fmt.Printf("Sending...")
-	err := smtp.SendMail(*dstSmtpAddrAndPort, s.auth, *sender, []string{*receiver}, []byte("thundermachine"))
+	data, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+	}
+	if len(data) == 0 {
+		fmt.Printf("No data.\n")
+		return
+	}
+	err = smtp.SendMail(*dstSmtpAddrAndPort, s.auth, *sender, []string{*receiver}, data)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	}
@@ -33,5 +41,6 @@ func main() {
 		fmt.Printf("Error: Failed to authorize/\n")
 		return
 	}
-	http.ListenAndServe(":8080", &Server{auth: auth})
+	http.Handle("/relay", &Server{auth: auth})
+	http.ListenAndServe(":8080", nil)
 }
