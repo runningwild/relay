@@ -13,5 +13,6 @@ func (s *Server) ServeHTTP(response http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	http.ListenAndServe(":8080")
+	var s Server
+	http.ListenAndServe(":8080", &s)
 }
