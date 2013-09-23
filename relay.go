@@ -14,15 +14,13 @@ var dstSmtpAddrAndPort = flag.String("dst-smtp", "smtp.gmail.com:587", "smtp ser
 var sender = flag.String("sender", "mistcakethegame@gmail.com", "sender email address")
 var receiver = flag.String("receiver", "runningwild@gmail.com", "recipient email address")
 
-type Server struct{}
+type Server struct {
+	auth smtp.Auth
+}
 
 func (s *Server) ServeHTTP(response http.ResponseWriter, req *http.Request) {
-	auth := smtp.PlainAuth("", *srcUser, *srcPassword, *srcSmtpAddr)
-	if auth == nil {
-		fmt.Printf("Failed to authorize/\n")
-		return
-	}
-	err := smtp.SendMail(*dstSmtpAddrAndPort, auth, *sender, []string{*receiver}, []byte("thundermachine"))
+	fmt.Printf("Sending...")
+	err := smtp.SendMail(*dstSmtpAddrAndPort, s.auth, *sender, []string{*receiver}, []byte("thundermachine"))
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	}
@@ -30,6 +28,10 @@ func (s *Server) ServeHTTP(response http.ResponseWriter, req *http.Request) {
 
 func main() {
 	flag.Parse()
-	var s Server
-	http.ListenAndServe(":8080", &s)
+	auth := smtp.PlainAuth("", *srcUser, *srcPassword, *srcSmtpAddr)
+	if auth == nil {
+		fmt.Printf("Error: Failed to authorize/\n")
+		return
+	}
+	http.ListenAndServe(":8080", &Server{auth: auth})
 }
